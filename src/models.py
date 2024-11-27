@@ -1,6 +1,4 @@
-import os
-import sys
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
+from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy import create_engine
 from datetime import datetime
@@ -12,46 +10,33 @@ class User(Base):
     __tablename__ = 'user'
     id = Column(Integer, primary_key=True)
     username = Column(String(50), nullable=False, unique=True)
+    firstname = Column(String(50), nullable=True)
+    lastname = Column(String(50), nullable=True)
     email = Column(String(100), nullable=False, unique=True)
-    password = Column(String(100), nullable=False)
-    profile_picture = Column(String(200), nullable=True)
     posts = relationship('Post', back_populates='user')
-    comments = relationship('Comment', back_populates='user')
-    likes = relationship('Like', back_populates='user')
+    followers = relationship('Follower', foreign_keys='Follower.user_to_id', back_populates='followed')
+    following = relationship('Follower', foreign_keys='Follower.user_from_id', back_populates='follower')
+
+class Follower(Base):
+    __tablename__ = 'follower'
+    id = Column(Integer, primary_key=True)
+    user_from_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+    user_to_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+    follower = relationship('User', foreign_keys=[user_from_id], back_populates='following')
+    followed = relationship('User', foreign_keys=[user_to_id], back_populates='followers')
 
 class Post(Base):
     __tablename__ = 'post'
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('user.id'))
-    image_url = Column(String(200), nullable=False)
-    caption = Column(String(500), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship('User', back_populates='posts')
-    comments = relationship('Comment', back_populates='post')
-    likes = relationship('Like', back_populates='post')
 
-class Comment(Base):
-    __tablename__ = 'comment'
-    id = Column(Integer, primary_key=True)
-    post_id = Column(Integer, ForeignKey('post.id'))
-    user_id = Column(Integer, ForeignKey('user.id'))
-    content = Column(String(500), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    user = relationship('User', back_populates='comments')
-    post = relationship('Post', back_populates='comments')
+# Aquí también puedes agregar las tablas Media y Comment si aún no están.
 
-class Like(Base):
-    __tablename__ = 'like'
-    id = Column(Integer, primary_key=True)
-    post_id = Column(Integer, ForeignKey('post.id'))
-    user_id = Column(Integer, ForeignKey('user.id'))
-    user = relationship('User', back_populates='likes')
-    post = relationship('Post', back_populates='likes')
-
-## Draw from SQLAlchemy base
+## Generar el diagrama
 try:
     result = render_er(Base, 'diagram.png')
-    print("Success! Check the diagram.png file")
+    print("¡Diagrama generado exitosamente! Revisa el archivo diagram.png")
 except Exception as e:
-    print("There was a problem generating the diagram")
+    print("Hubo un problema al generar el diagrama")
     raise e
